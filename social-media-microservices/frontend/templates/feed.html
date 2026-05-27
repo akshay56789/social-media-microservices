@@ -1,0 +1,432 @@
+{% extends "base.html" %}
+
+{% block title %}Feed - SocialLite{% endblock %}
+
+{% block styles %}
+<style>
+    .feed-container {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    
+    .post-card {
+        border-radius: 16px;
+        margin-bottom: 24px;
+        overflow: hidden;
+    }
+
+    .post-image-container {
+        max-height: 450px;
+        overflow: hidden;
+        border-bottom: 1px solid var(--border-color);
+        background-color: rgba(0,0,0,0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .post-image {
+        width: 100%;
+        max-height: 450px;
+        object-fit: cover;
+        transition: transform 0.5s ease;
+    }
+
+    .post-card:hover .post-image {
+        transform: scale(1.02);
+    }
+    
+    .like-btn {
+        color: var(--text-secondary);
+        background: transparent;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 20px;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .like-btn:hover {
+        background: rgba(255, 0, 127, 0.15);
+        color: #ff007f;
+    }
+
+    .like-btn.liked {
+        color: #ff007f;
+        font-weight: 600;
+    }
+
+    .comment-section {
+        border-top: 1px solid var(--border-color);
+        background: rgba(255,255,255,0.01);
+        padding: 16px 24px;
+    }
+
+    .comment-item {
+        padding: 10px 0;
+        border-bottom: 1px dashed rgba(255,255,255,0.05);
+    }
+
+    .comment-item:last-child {
+        border-bottom: none;
+    }
+
+    .profile-sidebar {
+        position: sticky;
+        top: 100px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Left Feed Column -->
+    <div class="col-lg-8 feed-container">
+        <!-- Quick Share Header -->
+        <div class="glass-card p-4 mb-4 d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-3">
+                <div id="quick-avatar"></div>
+                <h5 class="m-0 text-secondary">What's on your mind?</h5>
+            </div>
+            <a href="/create-post" class="btn btn-gradient d-flex align-items-center gap-2">
+                <i class="fa-solid fa-pen-nib"></i> Write Post
+            </a>
+        </div>
+
+        <!-- Feed Timeline list container -->
+        <div id="feed-timeline">
+            <div class="text-center py-5" id="timeline-spinner">
+                <div class="spinner-border text-purple" role="status" style="width: 3rem; height: 3rem; color: #a855f7;"></div>
+                <p class="text-muted mt-3">Loading your social feed...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Sidebar Column (My Profile Preview) -->
+    <div class="col-lg-4 d-none d-lg-block">
+        <div class="glass-card p-4 profile-sidebar text-center">
+            <div class="mb-3" id="sidebar-avatar-container"></div>
+            <h4 class="fw-bold mb-1" id="sidebar-username"></h4>
+            <p class="text-muted small mb-3" id="sidebar-email"></p>
+            <p class="small text-light px-2" id="sidebar-bio"></p>
+            <hr class="border-secondary my-3">
+            <div class="d-grid">
+                <a href="/profile" class="btn btn-outline-light rounded-pill btn-sm">
+                    <i class="fa-solid fa-address-card me-2"></i> View Profile Page
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Enforce user presence
+        if (!currentUser) return;
+        
+        // Render Sidebar and Quick Share details
+        const quickAvatar = document.getElementById("quick-avatar");
+        const sidebarAvatar = document.getElementById("sidebar-avatar-container");
+        const avatarHtml = currentUser.profileImageUrl 
+            ? `<img src="${currentUser.profileImageUrl}" class="avatar-img" alt="avatar">` 
+            : `<div class="avatar-placeholder">${currentUser.username[0].toUpperCase()}</div>`;
+        
+        quickAvatar.innerHTML = avatarHtml;
+        sidebarAvatar.innerHTML = currentUser.profileImageUrl 
+            ? `<img src="${currentUser.profileImageUrl}" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid #8a2be2;" alt="avatar">` 
+            : `<div class="avatar-placeholder mx-auto" style="width: 100px; height: 100px; font-size: 2.5rem;">${currentUser.username[0].toUpperCase()}</div>`;
+        
+        document.getElementById("sidebar-username").innerText = currentUser.username;
+        document.getElementById("sidebar-email").innerText = currentUser.email;
+        document.getElementById("sidebar-bio").innerText = currentUser.bio || "No biography provided yet.";
+
+        // Load Feed Posts
+        loadFeed();
+
+        async function loadFeed() {
+            try {
+                const response = await fetch("/api/posts", {
+                    headers: {
+                        "Authorization": `Bearer ${token}`
+                    }
+                });
+                
+                if (!response.ok) throw new Error("Could not fetch feed posts");
+                const posts = await response.json();
+                
+                const timeline = document.getElementById("feed-timeline");
+                timeline.innerHTML = "";
+                
+                if (posts.length === 0) {
+                    timeline.innerHTML = `
+                        <div class="glass-card p-5 text-center">
+                            <i class="fa-solid fa-feather fa-3x mb-3 text-muted"></i>
+                            <h4 class="text-secondary">Timeline is empty</h4>
+                            <p class="text-muted small">Be the first to share a post and start the conversation!</p>
+                            <a href="/create-post" class="btn btn-gradient btn-sm mt-2">Create Post</a>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                for (const post of posts) {
+                    const postCard = document.createElement("div");
+                    postCard.className = "glass-card post-card animate-fade-in";
+                    postCard.id = `post-${post.postId}`;
+                    
+                    const isOwner = post.userId === currentUser.userId;
+                    const deleteBtnHtml = isOwner 
+                        ? `<button class="btn btn-sm btn-outline-danger border-0 rounded-circle" onclick="deletePost(${post.postId})" title="Delete Post">
+                             <i class="fa-solid fa-trash-can"></i>
+                           </button>` 
+                        : '';
+                    
+                    const postImageHtml = post.imageUrl 
+                        ? `<div class="post-image-container">
+                             <img src="${post.imageUrl}" class="post-image" alt="post image">
+                           </div>` 
+                        : '';
+                        
+                    const authorAvatar = post.author.profileImageUrl
+                        ? `<img src="${post.author.profileImageUrl}" class="avatar-img" alt="avatar">`
+                        : `<div class="avatar-placeholder">${post.author.username[0].toUpperCase()}</div>`;
+                    
+                    // Format timestamp
+                    const formattedDate = new Date(post.createdDate).toLocaleDateString(undefined, { 
+                        month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+                    });
+
+                    postCard.innerHTML = `
+                        <div class="p-4">
+                            <!-- Header -->
+                            <div class="d-flex align-items-center justify-content-between mb-3">
+                                <div class="d-flex align-items-center gap-3">
+                                    ${authorAvatar}
+                                    <div>
+                                        <h6 class="m-0 fw-semibold text-light">${post.author.username}</h6>
+                                        <small class="text-muted" style="font-size: 0.75rem;">${formattedDate}</small>
+                                    </div>
+                                </div>
+                                ${deleteBtnHtml}
+                            </div>
+                            
+                            <!-- Body -->
+                            <p class="text-light" style="font-size: 1.05rem; white-space: pre-wrap;">${post.content}</p>
+                        </div>
+                        
+                        ${postImageHtml}
+                        
+                        <!-- Actions -->
+                        <div class="px-4 py-2 d-flex align-items-center gap-3 border-bottom border-dark">
+                            <button class="like-btn" id="like-btn-${post.postId}" onclick="likePost(${post.postId})">
+                                <i class="fa-solid fa-heart"></i>
+                                <span id="likes-count-${post.postId}">${post.likesCount}</span>
+                            </button>
+                            <button class="like-btn" onclick="toggleCommentSection(${post.postId})">
+                                <i class="fa-solid fa-message"></i>
+                                <span id="comments-count-${post.postId}">0</span>
+                            </button>
+                        </div>
+                        
+                        <!-- Comments section container (hidden by default) -->
+                        <div class="comment-section d-none" id="comment-section-${post.postId}">
+                            <div id="comments-list-${post.postId}" class="mb-3">
+                                <div class="text-center py-2 spinner-comments">
+                                    <span class="spinner-border spinner-border-sm text-purple" role="status"></span>
+                                </div>
+                            </div>
+                            
+                            <!-- Input -->
+                            <form onsubmit="submitComment(event, ${post.postId})" class="d-flex gap-2">
+                                <input type="text" id="comment-input-${post.postId}" class="form-control form-control-custom form-control-sm" placeholder="Write a comment..." required>
+                                <button type="submit" class="btn btn-gradient btn-sm px-3"><i class="fa-solid fa-paper-plane"></i></button>
+                            </form>
+                        </div>
+                    `;
+                    
+                    timeline.appendChild(postCard);
+                    
+                    // Fetch comments count asynchronously in background
+                    fetchCommentsCount(post.postId);
+                }
+            } catch (err) {
+                console.error(err);
+                showAlert("Error fetching timeline posts.", "error");
+            }
+        }
+        
+        // Expose functions globally for element listeners
+        window.likePost = async function(postId) {
+            try {
+                const response = await fetch(`/api/posts/${postId}/like`, {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById(`likes-count-${postId}`).innerText = data.likesCount;
+                    
+                    const likeBtn = document.getElementById(`like-btn-${postId}`);
+                    if (data.message.includes("unliked")) {
+                        likeBtn.classList.remove("liked");
+                    } else {
+                        likeBtn.classList.add("liked");
+                    }
+                }
+            } catch (err) {
+                console.error("Like toggle failed:", err);
+            }
+        };
+
+        window.deletePost = async function(postId) {
+            if (!confirm("Are you sure you want to delete this post?")) return;
+            
+            try {
+                const response = await fetch(`/api/posts/${postId}`, {
+                    method: "DELETE",
+                    headers: {
+                        "Authorization": `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    showAlert("Post deleted successfully!", "success");
+                    document.getElementById(`post-${postId}`).remove();
+                } else {
+                    const data = await response.json();
+                    showAlert(data.error || "Could not delete post.", "error");
+                }
+            } catch (err) {
+                console.error("Delete failed:", err);
+                showAlert("Error connecting to server.", "error");
+            }
+        };
+
+        window.toggleCommentSection = function(postId) {
+            const section = document.getElementById(`comment-section-${postId}`);
+            const isHidden = section.classList.contains("d-none");
+            
+            if (isHidden) {
+                section.classList.remove("d-none");
+                loadComments(postId);
+            } else {
+                section.classList.add("d-none");
+            }
+        };
+
+        async function fetchCommentsCount(postId) {
+            try {
+                const response = await fetch(`/api/comments/${postId}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById(`comments-count-${postId}`).innerText = data.length;
+                }
+            } catch (e) {
+                console.error("Fetch comments count failed:", e);
+            }
+        }
+
+        async function loadComments(postId) {
+            const list = document.getElementById(`comments-list-${postId}`);
+            
+            try {
+                const response = await fetch(`/api/comments/${postId}`);
+                if (!response.ok) throw new Error();
+                const comments = await response.json();
+                
+                list.innerHTML = "";
+                document.getElementById(`comments-count-${postId}`).innerText = comments.length;
+                
+                if (comments.length === 0) {
+                    list.innerHTML = `<div class="small text-muted py-2">No comments yet. Be the first to reply!</div>`;
+                    return;
+                }
+                
+                comments.forEach(comment => {
+                    const item = document.createElement("div");
+                    item.className = "comment-item small animate-fade-in";
+                    item.id = `comment-${comment.commentId}`;
+                    
+                    const avatar = comment.author.profileImageUrl
+                        ? `<img src="${comment.author.profileImageUrl}" style="width: 25px; height: 25px; border-radius: 50%; object-fit: cover;" alt="avatar">`
+                        : `<div class="avatar-placeholder" style="width: 25px; height: 25px; font-size: 0.65rem;">${comment.author.username[0].toUpperCase()}</div>`;
+                        
+                    const isCommentOwner = comment.userId === currentUser.userId;
+                    const deleteCommentBtn = isCommentOwner 
+                        ? `<button class="btn btn-sm btn-link text-danger border-0 p-0 text-decoration-none float-end" onclick="deleteComment(${postId}, ${comment.commentId})">Delete</button>`
+                        : '';
+                    
+                    item.innerHTML = `
+                        <div class="d-flex align-items-start gap-2">
+                            ${avatar}
+                            <div class="flex-grow-1">
+                                <span class="fw-semibold text-light">${comment.author.username}</span>
+                                <span class="text-light-50">${comment.commentText}</span>
+                                ${deleteCommentBtn}
+                            </div>
+                        </div>
+                    `;
+                    list.appendChild(item);
+                });
+            } catch (err) {
+                list.innerHTML = `<div class="small text-danger py-2">Could not retrieve comments.</div>`;
+            }
+        }
+
+        window.submitComment = async function(event, postId) {
+            event.preventDefault();
+            const input = document.getElementById(`comment-input-${postId}`);
+            const text = input.value.trim();
+            if (!text) return;
+            
+            try {
+                const response = await fetch("/api/comments", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ postId: postId, commentText: text })
+                });
+                
+                if (response.ok) {
+                    input.value = "";
+                    loadComments(postId);
+                } else {
+                    showAlert("Failed to post comment", "error");
+                }
+            } catch (err) {
+                showAlert("Error connecting to server", "error");
+            }
+        };
+
+        window.deleteComment = async function(postId, commentId) {
+            if (!confirm("Delete this comment?")) return;
+            
+            try {
+                const response = await fetch(`/api/comments/${commentId}`, {
+                    method: "DELETE",
+                    headers: {
+                        "Authorization": `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    document.getElementById(`comment-${commentId}`).remove();
+                    // Reload list to update count
+                    loadComments(postId);
+                }
+            } catch (err) {
+                showAlert("Failed to delete comment", "error");
+            }
+        };
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,65 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: app-ingress
+  namespace: default
+  annotations:
+    # Enable regex-based path matching (required for capture groups in paths below)
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    
+    # Enable path rewrites so that incoming `/api/auth/login` is sent to `auth-service` as `/login`
+    # The `rewrite-target` annotation specifies that whatever matches inside `(.*)` in the paths 
+    # below gets forwarded to the backend service.
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+    
+    # Increase maximum upload size to support images
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+spec:
+  ingressClassName: nginx
+  rules:
+  - http:
+      paths:
+      # 1. Route Auth APIs: Ex. /api/auth/login -> auth-service:80/login
+      - path: /api/auth/?(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: auth-service
+            port:
+              number: 80
+
+      # 2. Route Post APIs: Ex. /api/posts -> post-service:80/ (root)
+      - path: /api/posts/?(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: post-service
+            port:
+              number: 80
+
+      # 3. Route Comment APIs: Ex. /api/comments -> comment-service:80/ (root)
+      - path: /api/comments/?(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: comment-service
+            port:
+              number: 80
+
+      # 4. Route Media APIs: Ex. /api/media/upload -> media-service:80/upload
+      - path: /api/media/?(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: media-service
+            port:
+              number: 80
+
+      # 5. Route all other traffic to Frontend Service (pages, static elements)
+      - path: /?(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: frontend
+            port:
+              number: 80

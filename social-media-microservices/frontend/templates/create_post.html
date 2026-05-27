@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block title %}Share Post - SocialLite{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center align-items-center" style="min-height: 70vh;">
+    <div class="col-md-6 col-lg-5">
+        <div class="glass-card p-5 animate-fade-in">
+            <div class="text-center mb-4">
+                <i class="fa-solid fa-pen-to-square fa-3x mb-3 text-purple" style="color: #a855f7;"></i>
+                <h2 class="fw-bold">Create Post</h2>
+                <p class="text-muted small">Share your thoughts or upload an image to your followers</p>
+            </div>
+            
+            <form id="post-form">
+                <div class="mb-3">
+                    <label for="content" class="form-label small fw-medium text-secondary">What's on your mind?</label>
+                    <textarea id="content" rows="4" class="form-control form-control-custom" placeholder="Write something inspiring or fun..." required></textarea>
+                </div>
+                
+                <div class="mb-4">
+                    <label for="postImage" class="form-label small fw-medium text-secondary">Add an Image (Optional)</label>
+                    <input type="file" id="postImage" class="form-control form-control-custom" accept="image/*">
+                    <div class="form-text text-muted small">Images are stored in Azure Blob Storage via our Media Microservice.</div>
+                </div>
+                
+                <button type="submit" class="btn btn-gradient w-100 py-3 d-flex align-items-center justify-content-center gap-2" id="submit-btn">
+                    <span>Share Post</span>
+                    <i class="fa-solid fa-paper-plane"></i>
+                </button>
+            </form>
+            
+            <div class="text-center mt-4">
+                <a href="/feed" class="small fw-semibold text-muted" style="text-decoration: none;">
+                    <i class="fa-solid fa-arrow-left me-1"></i> Back to Feed
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const form = document.getElementById("post-form");
+        const submitBtn = document.getElementById("submit-btn");
+        
+        form.addEventListener("submit", async function(e) {
+            e.preventDefault();
+            
+            const content = document.getElementById("content").value.trim();
+            const imageFile = document.getElementById("postImage").files[0];
+            
+            if (!content) {
+                showAlert("Post content cannot be empty", "error");
+                return;
+            }
+            
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Sharing...`;
+            
+            let imageUrl = "";
+            
+            // 1. If an image is selected, upload to Media Service first!
+            if (imageFile) {
+                submitBtn.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Uploading image...`;
+                const formData = new FormData();
+                formData.append("file", imageFile);
+                
+                try {
+                    const mediaResponse = await fetch("/api/media/upload", {
+                        method: "POST",
+                        body: formData
+                    });
+                    
+                    const mediaData = await mediaResponse.json();
+                    
+                    if (mediaResponse.ok) {
+                        imageUrl = mediaData.imageUrl;
+                        showAlert("Image uploaded successfully!", "success");
+                    } else {
+                        showAlert("Image upload failed: " + (mediaData.error || "unknown error"), "error");
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = `<span>Share Post</span> <i class="fa-solid fa-paper-plane"></i>`;
+                        return;
+                    }
+                } catch (err) {
+                    console.error("Media Service upload error:", err);
+                    showAlert("Failed to connect to Media Service for image upload.", "error");
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = `<span>Share Post</span> <i class="fa-solid fa-paper-plane"></i>`;
+                    return;
+                }
+            }
+            
+            // 2. Submit the post text and optional image URL to Post Service
+            submitBtn.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Publishing post...`;
+            try {
+                const response = await fetch("/api/posts", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        content: content,
+                        imageUrl: imageUrl
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showAlert("Post shared successfully!", "success");
+                    setTimeout(() => {
+                        window.location.href = "/feed";
+                    }, 800);
+                } else {
+                    showAlert(data.error || "Failed to create post.", "error");
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = `<span>Share Post</span> <i class="fa-solid fa-paper-plane"></i>`;
+                }
+            } catch (err) {
+                console.error("Post creation error:", err);
+                showAlert("Network error connecting to Post Service.", "error");
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = `<span>Share Post</span> <i class="fa-solid fa-paper-plane"></i>`;
+            }
+        });
+    });
+</script>
+{% endblock %}

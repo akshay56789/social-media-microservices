@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block title %}Register - SocialLite{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center align-items-center" style="min-height: 80vh;">
+    <div class="col-md-6">
+        <div class="glass-card p-5 animate-fade-in">
+            <div class="text-center mb-4">
+                <i class="fa-solid fa-user-plus fa-3x mb-3" style="color: #ec4899;"></i>
+                <h2 class="fw-bold">Create Account</h2>
+                <p class="text-muted small">Join SocialLite and share your thoughts as microservices</p>
+            </div>
+            
+            <form id="register-form">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="username" class="form-label small fw-medium text-secondary">Username</label>
+                        <input type="text" id="username" class="form-control form-control-custom" placeholder="choose username" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="email" class="form-label small fw-medium text-secondary">Email Address</label>
+                        <input type="email" id="email" class="form-control form-control-custom" placeholder="name@example.com" required>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="password" class="form-label small fw-medium text-secondary">Password</label>
+                    <input type="password" id="password" class="form-control form-control-custom" placeholder="••••••••" required>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="bio" class="form-label small fw-medium text-secondary">Bio (Short Description)</label>
+                    <textarea id="bio" rows="2" class="form-control form-control-custom" placeholder="Tell us about yourself..."></textarea>
+                </div>
+                
+                <div class="mb-4">
+                    <label for="profileImage" class="form-label small fw-medium text-secondary">Profile Picture (Optional)</label>
+                    <input type="file" id="profileImage" class="form-control form-control-custom" accept="image/*">
+                    <div class="form-text text-muted small">Images are uploaded to Azure Blob Storage / Local Fallback via Media Service.</div>
+                </div>
+                
+                <button type="submit" class="btn btn-gradient-secondary w-100 py-3 d-flex align-items-center justify-content-center gap-2" id="submit-btn">
+                    <span>Sign Up</span>
+                    <i class="fa-solid fa-user-check"></i>
+                </button>
+            </form>
+            
+            <div class="text-center mt-4">
+                <span class="text-muted small">Already have an account? </span>
+                <a href="/login" class="small fw-semibold text-purple" style="color: #ec4899; text-decoration: none;">Sign in here</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        if (localStorage.getItem("token")) {
+            window.location.href = "/feed";
+        }
+        
+        const form = document.getElementById("register-form");
+        const submitBtn = document.getElementById("submit-btn");
+        
+        form.addEventListener("submit", async function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById("username").value.trim();
+            const email = document.getElementById("email").value.trim();
+            const password = document.getElementById("password").value;
+            const bio = document.getElementById("bio").value.trim();
+            const imageFile = document.getElementById("profileImage").files[0];
+            
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Creating account...`;
+            
+            let imageUrl = "";
+
+            // 1. If an image is selected, upload it to Media Service first!
+            if (imageFile) {
+                submitBtn.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Uploading profile avatar...`;
+                const formData = new FormData();
+                formData.append("file", imageFile);
+                
+                try {
+                    const mediaResponse = await fetch("/api/media/upload", {
+                        method: "POST",
+                        body: formData
+                    });
+                    
+                    const mediaData = await mediaResponse.json();
+                    
+                    if (mediaResponse.ok) {
+                        imageUrl = mediaData.imageUrl;
+                        showAlert("Avatar uploaded successfully!", "success");
+                    } else {
+                        showAlert("Image upload failed: " + (mediaData.error || "unknown error"), "error");
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = `<span>Sign Up</span> <i class="fa-solid fa-user-check"></i>`;
+                        return;
+                    }
+                } catch (err) {
+                    console.error("Avatar upload error:", err);
+                    showAlert("Failed to connect to Media Service for upload.", "error");
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = `<span>Sign Up</span> <i class="fa-solid fa-user-check"></i>`;
+                    return;
+                }
+            }
+            
+            // 2. Submit the registration details to Auth Service
+            submitBtn.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Finalizing registration...`;
+            try {
+                const response = await fetch("/api/auth/register", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        email: email,
+                        password: password,
+                        bio: bio,
+                        profileImageUrl: imageUrl
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Auto log in after registration
+                    localStorage.setItem("token", data.token);
+                    localStorage.setItem("user", JSON.stringify(data.user));
+                    
+                    showAlert("Account created successfully!", "success");
+                    
+                    setTimeout(() => {
+                        window.location.href = "/feed";
+                    }, 1000);
+                } else {
+                    showAlert(data.error || "Registration failed.", "error");
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = `<span>Sign Up</span> <i class="fa-solid fa-user-check"></i>`;
+                }
+            } catch (err) {
+                console.error("Register fetch error:", err);
+                showAlert("Network error connecting to Auth Service.", "error");
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = `<span>Sign Up</span> <i class="fa-solid fa-user-check"></i>`;
+            }
+        });
+    });
+</script>
+{% endblock %}

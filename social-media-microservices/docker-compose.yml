@@ -1,0 +1,94 @@
+version: '3.8'
+
+services:
+  # 1. Authentication Service
+  auth-service:
+    build:
+      context: ./auth-service
+      dockerfile: Dockerfile
+    environment:
+      - PORT=5001
+      - JWT_SECRET=dev_secret_key_change_me_in_prod
+      # If connecting to Azure SQL, provide DB_CONNECTION_STRING here:
+      # - DB_CONNECTION_STRING=Driver={ODBC Driver 18 for SQL Server};Server=tcp:your-server.database.windows.net,1433;Database=your-db;Uid=your-user;Pwd=your-password;Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;
+    volumes:
+      - auth-db-data:/app/data
+    restart: always
+
+  # 2. Post Service
+  post-service:
+    build:
+      context: ./post-service
+      dockerfile: Dockerfile
+    environment:
+      - PORT=5002
+      - JWT_SECRET=dev_secret_key_change_me_in_prod
+      - AUTH_SERVICE_URL=http://auth-service:5001
+      # If connecting to Azure SQL, provide DB_CONNECTION_STRING here
+    depends_on:
+      - auth-service
+    volumes:
+      - post-db-data:/app/data
+    restart: always
+
+  # 3. Comment Service
+  comment-service:
+    build:
+      context: ./comment-service
+      dockerfile: Dockerfile
+    environment:
+      - PORT=5003
+      - JWT_SECRET=dev_secret_key_change_me_in_prod
+      - AUTH_SERVICE_URL=http://auth-service:5001
+      # If connecting to Azure SQL, provide DB_CONNECTION_STRING here
+    depends_on:
+      - auth-service
+    volumes:
+      - comment-db-data:/app/data
+    restart: always
+
+  # 4. Media Service
+  media-service:
+    build:
+      context: ./media-service
+      dockerfile: Dockerfile
+    environment:
+      - PORT=5004
+      - UPLOAD_FOLDER=/app/uploads
+      # If connecting to Azure Blob Storage, provide details here:
+      # - AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=https;AccountName=your-account;AccountKey=your-key;EndpointSuffix=core.windows.net
+      # - AZURE_STORAGE_CONTAINER=social-media-images
+    volumes:
+      - media-uploads:/app/uploads
+    restart: always
+
+  # 5. Frontend Service
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    environment:
+      - PORT=5000
+    restart: always
+
+  # 6. Gateway / Reverse Proxy (Simulates Ingress locally)
+  gateway:
+    image: nginx:1.25-alpine
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./gateway/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - auth-service
+      - post-service
+      - comment-service
+      - media-service
+      - frontend
+    restart: always
+
+# Persistent Named Volumes for SQLite DB files and uploaded local files
+volumes:
+  auth-db-data:
+  post-db-data:
+  comment-db-data:
+  media-uploads:

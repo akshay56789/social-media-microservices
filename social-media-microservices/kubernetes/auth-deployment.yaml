@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-deployment
+  namespace: default
+  labels:
+    app: auth-service
+spec:
+  # Maintain exactly 2 running instances of this container for high-availability
+  replicas: 2
+  selector:
+    matchLabels:
+      app: auth-service
+  template:
+    metadata:
+      labels:
+        app: auth-service
+    spec:
+      containers:
+      - name: auth-service
+        # Placeholder image, would be replaced by your container registry path (e.g. docker.io/username/auth-service:latest)
+        image: auth-service:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 5001
+        
+        # Resource requests & limits are a Kubernetes best-practice to prevent node starvation
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "100m"
+          limits:
+            memory: "128Mi"
+            cpu: "250m"
+            
+        # Define environment variables mapped from ConfigMaps and Secrets
+        env:
+        - name: PORT
+          value: "5001"
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: JWT_SECRET
+        - name: DB_CONNECTION_STRING
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: DB_CONNECTION_STRING
+
+        # Liveness probes check if a container needs to be restarted (e.g. if the app crashed or deadlocked)
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 5001
+          initialDelaySeconds: 15
+          periodSeconds: 20
+
+        # Readiness probes check if the container is ready to receive network traffic (e.g. after DB migrations run)
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 5001
+          initialDelaySeconds: 10
+          periodSeconds: 10

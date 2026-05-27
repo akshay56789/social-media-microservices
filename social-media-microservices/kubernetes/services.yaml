@@ -1,0 +1,93 @@
+# This file defines the ClusterIP Services for all microservices.
+# A ClusterIP Service assigns an internal virtual IP and DNS name to a set of Pods.
+# Inter-service communication uses these DNS names, mapping HTTP port 80 to container ports.
+
+# 1. Auth Service ClusterIP
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-service
+  namespace: default
+  labels:
+    app: auth-service
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 80           # Exposes standard port 80 internally
+    targetPort: 5001   # Forwards request to container port 5001
+    protocol: TCP
+  selector:
+    app: auth-service
+---
+# 2. Post Service ClusterIP
+apiVersion: v1
+kind: Service
+metadata:
+  name: post-service
+  namespace: default
+  labels:
+    app: post-service
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 80
+    targetPort: 5002
+    protocol: TCP
+  selector:
+    app: post-service
+---
+# 3. Comment Service ClusterIP
+apiVersion: v1
+kind: Service
+metadata:
+  name: comment-service
+  namespace: default
+  labels:
+    app: comment-service
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 80
+    targetPort: 5003
+    protocol: TCP
+  selector:
+    app: comment-service
+---
+# 4. Media Service ClusterIP
+apiVersion: v1
+kind: Service
+metadata:
+  name: media-service
+  namespace: default
+  labels:
+    app: media-service
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 80
+    targetPort: 5004
+    protocol: TCP
+  selector:
+    app: media-service
+---
+# 5. Frontend Service ClusterIP
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: default
+  labels:
+    app: frontend
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 80
+    targetPort: 5000
+    protocol: TCP
+  selector:
+    app: frontend

@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}Login - SocialLite{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center align-items-center" style="min-height: 70vh;">
+    <div class="col-md-5">
+        <div class="glass-card p-5 animate-fade-in">
+            <div class="text-center mb-4">
+                <i class="fa-solid fa-cloud-sun fa-3x mb-3 text-purple" style="color: #a855f7;"></i>
+                <h2 class="fw-bold">Welcome Back</h2>
+                <p class="text-muted small">Sign in to connect with your friends on SocialLite</p>
+            </div>
+            
+            <form id="login-form">
+                <div class="mb-3">
+                    <label for="username" class="form-label small fw-medium text-secondary">Username or Email</label>
+                    <div class="input-group">
+                        <span class="input-group-text border-0 bg-transparent text-secondary" style="margin-right: -40px; z-index: 10; padding-left: 15px;">
+                            <i class="fa-solid fa-user"></i>
+                        </span>
+                        <input type="text" id="username" class="form-control form-control-custom ps-5" placeholder="Enter username or email" required>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <label for="password" class="form-label small fw-medium text-secondary">Password</label>
+                    <div class="input-group">
+                        <span class="input-group-text border-0 bg-transparent text-secondary" style="margin-right: -40px; z-index: 10; padding-left: 15px;">
+                            <i class="fa-solid fa-lock"></i>
+                        </span>
+                        <input type="password" id="password" class="form-control form-control-custom ps-5" placeholder="Enter password" required>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn btn-gradient w-100 py-3 d-flex align-items-center justify-content-center gap-2" id="submit-btn">
+                    <span>Sign In</span>
+                    <i class="fa-solid fa-arrow-right-to-bracket"></i>
+                </button>
+            </form>
+            
+            <div class="text-center mt-4">
+                <span class="text-muted small">New to SocialLite? </span>
+                <a href="/register" class="small fw-semibold text-purple" style="color: #a855f7; text-decoration: none;">Create an account</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // If already logged in, skip to feed
+        if (localStorage.getItem("token")) {
+            window.location.href = "/feed";
+        }
+        
+        const form = document.getElementById("login-form");
+        const submitBtn = document.getElementById("submit-btn");
+        
+        form.addEventListener("submit", async function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById("username").value.trim();
+            const password = document.getElementById("password").value;
+            
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Signing in...`;
+            
+            try {
+                // Route through Nginx gateway or K8s Ingress
+                const response = await fetch("/api/auth/login", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ email: username, password: password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Save credentials state
+                    localStorage.setItem("token", data.token);
+                    localStorage.setItem("user", JSON.stringify(data.user));
+                    
+                    showAlert("Authentication successful! Redirecting...", "success");
+                    
+                    setTimeout(() => {
+                        window.location.href = "/feed";
+                    }, 1000);
+                } else {
+                    showAlert(data.error || "Invalid username or password.", "error");
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = `<span>Sign In</span> <i class="fa-solid fa-arrow-right-to-bracket"></i>`;
+                }
+            } catch (err) {
+                console.error("Login fetch error:", err);
+                showAlert("Network error. Make sure the auth service is running.", "error");
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = `<span>Sign In</span> <i class="fa-solid fa-arrow-right-to-bracket"></i>`;
+            }
+        });
+    });
+</script>
+{% endblock %}
