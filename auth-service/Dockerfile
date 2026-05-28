@@ -2,7 +2,7 @@ FROM python:3.11-slim
 
 #Install required system dependencies
 
-RUN apt-get update && apt-get install -y- -no-install-recommends \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     unixodbc-dev \
     gcc \
@@ -19,9 +19,9 @@ RUN curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /u
     > /etc/apt/sources.list.d/mssql-release.list
 
 #Install MS ODBC driver
-RUN apt-get update && ACCEPT_EULA-Y apt-get install -y \
+RUN apt-get update && ACCEPT_EULA=Y apt-get install -y \
     msodbcsql18 \
-    unixodbc1 \
+    unixodbc \
     && rm -rf /var/lib/apt/lists/*
 
 # App setup
