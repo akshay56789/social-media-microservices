@@ -1,0 +1,30 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - configmap.yaml
+  - secrets.yaml
+  - services.yaml
+  - auth-deployment.yaml
+  - post-deployment.yaml
+  - comment-deployment.yaml
+  - media-deployment.yaml
+  - frontend-deployment.yaml
+  - ingress.yaml
+
+images:
+  - name: auth-service
+    newName: youracrname.azurecr.io/auth-service
+    newTag: latest
+  - name: post-service
+    newName: youracrname.azurecr.io/post-service
+    newTag: latest
+  - name: comment-service
+    newName: youracrname.azurecr.io/comment-service
+    newTag: latest
+  - name: media-service
+    newName: youracrname.azurecr.io/media-service
+    newTag: latest
+  - name: frontend
+    newName: youracrname.azurecr.io/frontend
+    newTag: latest

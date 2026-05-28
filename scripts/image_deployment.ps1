@@ -78,4 +78,25 @@ Write-Host ""
 az acr repository list `
 --name $ACR_NAME `
 --output table
+
+# ============================
+# Update Kustomization & Deploy
+# ============================
+
+Write-Host ""
+Write-Host "Updating kustomization.yaml with ACR name ($ACR_NAME)..."
+Push-Location ../kubernetes
+
+# Update the images dynamically in Kustomize
+kubectl kustomize edit set image auth-service=$ACR_NAME.azurecr.io/auth-service:$TAG
+kubectl kustomize edit set image post-service=$ACR_NAME.azurecr.io/post-service:$TAG
+kubectl kustomize edit set image comment-service=$ACR_NAME.azurecr.io/comment-service:$TAG
+kubectl kustomize edit set image media-service=$ACR_NAME.azurecr.io/media-service:$TAG
+kubectl kustomize edit set image frontend=$ACR_NAME.azurecr.io/frontend:$TAG
+
+Write-Host "Applying Kubernetes manifests via Kustomize..."
+kubectl apply -k .
+
+Pop-Location
+Write-Host "Deployment initiated!"
 ```
