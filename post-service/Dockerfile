@@ -39,4 +39,4 @@ ENV PORT=5002
 
 ENV FLASK_ENV=production
 
-CMD ["gunicorn", "--bind", "0.0.0.0:5003", "app:app"]
+CMD ["gunicorn", "--bind", "0.0.0.0:5002", "app:app"]
