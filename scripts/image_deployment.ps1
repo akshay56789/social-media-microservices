@@ -17,7 +17,7 @@ Write-Host "Building auth-service..."
 az acr build `
 --registry $ACR_NAME `
 --image auth-service:$TAG `
-./auth-service
+../auth-service
 
 # ============================
 # Build Post Service
@@ -28,7 +28,7 @@ Write-Host "Building post-service..."
 az acr build `
 --registry $ACR_NAME `
 --image post-service:$TAG `
-./post-service
+../post-service
 
 # ============================
 # Build Comment Service
@@ -39,7 +39,7 @@ Write-Host "Building comment-service..."
 az acr build `
 --registry $ACR_NAME `
 --image comment-service:$TAG `
-./comment-service
+../comment-service
 
 # ============================
 # Build Media Service
@@ -50,7 +50,7 @@ Write-Host "Building media-service..."
 az acr build `
 --registry $ACR_NAME `
 --image media-service:$TAG `
-./media-service
+../media-service
 
 # ============================
 # Build Frontend
@@ -61,7 +61,7 @@ Write-Host "Building frontend..."
 az acr build `
 --registry $ACR_NAME `
 --image frontend:$TAG `
-./frontend
+../frontend
 
 # ============================
 # Done
