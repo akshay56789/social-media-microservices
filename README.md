@@ -8,7 +8,7 @@ Welcome to **SocialLite**! This is a realistic, cloud-native social media micros
 
 ---
 
-## 🏗️ Architecture Overview
+##  Architecture Overview
 
 The system consists of **5 independent microservices** communicating via internal DNS and statelessly validating JSON Web Tokens (JWT):
 
@@ -31,14 +31,14 @@ graph TD
     Comment -.->|Saves Comments| AzureSQL
 ```
 
-### 💡 Core Architectural Highlights:
+###  Core Architectural Highlights:
 1. **Zero-Configuration Fallbacks:** Out-of-the-box, each microservice automatically detects if Azure connection strings are missing and gracefully falls back to local persistent SQLite databases and local filesystem directories. You can start the entire app with **zero setups**!
 2. **Kubernetes-Mirrored Gateway:** A lightweight Nginx gateway in Docker Compose matches the path routing rules of a Kubernetes Ingress Controller. Because of this, the frontend JavaScript code makes requests to relative paths (e.g. `/api/auth/register`) rather than absolute port-specific URLs, allowing the identical code to run in both Docker Compose and Kubernetes!
 3. **Internal Kubernetes DNS:** The `post-service` and `comment-service` utilize Kubernetes internal CoreDNS (e.g. `http://auth-service`) to dynamically fetch user profiles behind standard HTTP port `80`, showcasing ClusterIP service-to-service mapping!
 
 ---
 
-## 📁 Directory Structure
+##  Directory Structure
 
 ```text
 social-media-microservices/
@@ -56,7 +56,7 @@ social-media-microservices/
 
 ---
 
-## 🐳 1. Local Testing with Docker Compose
+##  1. Local Testing with Docker Compose
 
 To build and start all microservices, persistent database volumes, and the API gateway locally with a single command:
 
@@ -65,7 +65,7 @@ To build and start all microservices, persistent database volumes, and the API g
 docker-compose up --build
 ```
 
-### 🔍 Verifying the Services:
+###  Verifying the Services:
 * **Frontend Web App:** Open `http://localhost:8080` in your web browser. You will be greeted by the elegant login screen!
 * **Health Check Endpoints:**
   * Gateway: `http://localhost:8080/health` (Forwards to Frontend Health)
@@ -74,7 +74,7 @@ docker-compose up --build
   * Comment Service: `http://localhost:8080/api/comments/health`
   * Media Service: `http://localhost:8080/api/media/health`
 
-### 🧪 What to test:
+###  What to test:
 1. Go to the register page and sign up. Select a profile avatar to verify the **Media Service** successfully uploads to local storage and the **Auth Service** creates your user.
 2. Log in. Your JWT token will be saved in your browser's local storage.
 3. Write a post with an image and click **Share Post**.
@@ -83,7 +83,7 @@ docker-compose up --build
 
 ---
 
-## ☸️ 2. Deploying on Kubernetes
+##  2. Deploying on Kubernetes
 
 Deploying SocialLite on Kubernetes simulates a realistic production configuration. You can run this locally using **Minikube**, **Kind**, or **Docker Desktop Kubernetes**.
 
@@ -144,11 +144,11 @@ Then navigate to `http://sociallite.local` in your browser!
 
 ---
 
-## ☁️ 3. Upgrading to Azure SQL & Azure Blob Storage
+##  3. Upgrading to Azure SQL & Azure Blob Storage
 
 When you are ready to transition from SQLite/local storage to cloud resources:
 
-### 💾 A. Database setup (Azure SQL Database):
+###  A. Database setup (Azure SQL Database):
 1. Create an Azure SQL Database.
 2. Retrieve the JDBC/ODBC Connection String.
 3. Open `kubernetes/secrets.yaml` and base64-encode your connection string:
@@ -160,7 +160,7 @@ When you are ready to transition from SQLite/local storage to cloud resources:
    kubectl apply -f kubernetes/secrets.yaml
    ```
 
-### 🖼️ B. File/Image storage (Azure Blob Storage):
+###  B. File/Image storage (Azure Blob Storage):
 1. Create an Azure Storage Account and a container named `social-media-images`.
 2. Retrieve your Account Connection String.
 3. Base64-encode the storage connection string and paste it into the `AZURE_STORAGE_CONNECTION_STRING` field in `kubernetes/secrets.yaml`.
@@ -170,7 +170,7 @@ The python apps will automatically recognize these credentials on start and tran
 
 ---
 
-## 🚀 4. CI/CD Pipeline
+##  4. CI/CD Pipeline
 
 The project includes a GitHub Actions workflow located at `.github/workflows/ci-cd.yml`.
 * **Linting:** It runs `flake8` to validate Python syntax.
