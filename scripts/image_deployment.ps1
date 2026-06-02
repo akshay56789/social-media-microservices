@@ -3,7 +3,10 @@
 # Variables
 # ============================
 
-$ACR_NAME = "youracrname"
+$ACR_NAME = "acr4c4a33d309"
+$AKS_CLUSTER = "SocialLiteCluster"
+$AKS_RG = "SocialLiteRG"
+$TAG = "latest"
 
 # Optional image tag
 $TAG = "latest"
@@ -78,6 +81,25 @@ Write-Host ""
 az acr repository list `
 --name $ACR_NAME `
 --output table
+
+# ============================
+# Connect to AKS
+# ============================
+
+Write-Host ""
+Write-Host "Connecting to AKS..."
+
+az aks get-credentials `
+  --resource-group $AKS_RG `
+  --name $AKS_CLUSTER `
+  --overwrite-existing
+
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "Failed to connect to AKS"
+    exit 1
+}
+
+Write-Host "Connected to AKS successfully."
 
 # ============================
 # Update Kustomization & Deploy
