@@ -10,5 +10,5 @@ $sqlPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
 
 az deployment group create `
   --resource-group $resourceGroup `
-  --template-file .\infra\main.bicep `
+  --template-file \main.bicep `
   --parameters sqlAdminPassword="$sqlPassword"
