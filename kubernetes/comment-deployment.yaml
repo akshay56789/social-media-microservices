@@ -15,9 +15,12 @@ spec:
       labels:
         app: comment-service
     spec:
+      # ImagePullSecrets is required to pull images from a private registry like Azure Container Registry
+      imagePullSecrets:
+      - name: acr-secret
       containers:
       - name: comment-service
-        image: comment-service:latest
+        image: akshayregistry.azurecr.io/comment-service:latest
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 5003

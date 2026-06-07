@@ -15,9 +15,12 @@ spec:
       labels:
         app: post-service
     spec:
+    # ImagePullSecrets is required to pull images from a private registry like Azure Container Registry
+      imagePullSecrets:
+      - name: acr-secret
       containers:
       - name: post-service
-        image: post-service:latest
+        image: akshayregistry.azurecr.io/post-service:latest
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 5002

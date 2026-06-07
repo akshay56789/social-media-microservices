@@ -15,9 +15,12 @@ spec:
       labels:
         app: frontend
     spec:
+      # ImagePullSecrets is required to pull images from a private registry like Azure Container Registry
+      imagePullSecrets:
+      - name: acr-secret
       containers:
       - name: frontend
-        image: frontend:latest
+        image: .azurecr.io/frontend:latest
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 5000

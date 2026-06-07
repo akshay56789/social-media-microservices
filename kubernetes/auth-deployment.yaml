@@ -16,10 +16,13 @@ spec:
       labels:
         app: auth-service
     spec:
+    # ImagePullSecrets is required to pull images from a private registry like Azure Container Registry
+      imagePullSecrets:
+      - name: acr-secret 
       containers:
       - name: auth-service
         # Placeholder image, would be replaced by your container registry path (e.g. docker.io/username/auth-service:latest)
-        image: auth-service:latest
+        image: akshayregistry.azurecr.io/auth-service:latest
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 5001

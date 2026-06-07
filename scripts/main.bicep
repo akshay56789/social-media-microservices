@@ -20,6 +20,66 @@ param storageAccountName string = 'akshaystorage56789'
 @description('Blob Container Name')
 param containerName string = 'social-media-images'
 
+@description('AKS Cluster Name')
+param aksClusterName string = 'akshaycluster'
+
+@description('Azure Container Registry Name')
+param acrName string = 'akshayregistry'
+
+@description('AKS Node Count')
+param nodeCount int = 1
+
+@description('AKS VM Size')
+param vmSize string = 'Standard_B2s'
+
+//
+// Container Registry
+//
+resource acr 'Microsoft.ContainerRegistry/registries@2023-07-01' = {
+  name: acrName
+  location: location
+
+  sku: {
+    name: 'Basic'
+  }
+
+  properties: {
+    adminUserEnabled: true
+  }
+}
+
+//
+// Kubernetes Cluster
+//
+resource aks 'Microsoft.ContainerService/managedClusters@2024-01-01' = {
+  name: aksClusterName
+  location: location
+
+  identity: {
+    type: 'SystemAssigned'
+  }
+
+  properties: {
+    dnsPrefix: aksClusterName
+
+    agentPoolProfiles: [
+      {
+        name: 'agentpool'
+        count: nodeCount
+        vmSize: vmSize
+        mode: 'System'
+        osType: 'Linux'
+        type: 'VirtualMachineScaleSets'
+      }
+    ]
+
+    networkProfile: {
+      networkPlugin: 'azure'
+      loadBalancerSku: 'standard'
+    }
+  }
+}
+
 //
 // SQL Server
 //

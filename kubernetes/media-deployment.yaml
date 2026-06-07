@@ -19,9 +19,12 @@ spec:
       labels:
         app: media-service
     spec:
+      # ImagePullSecrets is required to pull images from a private registry like Azure Container Registry
+      imagePullSecrets:
+      - name: acr-secret
       containers:
       - name: media-service
-        image: media-service:latest
+        image: akshayregistry.azurecr.io/media-service:latest
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 5004

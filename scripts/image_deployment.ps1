@@ -3,13 +3,13 @@
 # Variables
 # ============================
 
-$ACR_NAME = "acr4c4a33d309"
-$AKS_CLUSTER = "SocialLiteCluster"
-$AKS_RG = "SocialLiteRG"
+$ACR_NAME = "akshayregistry"
+$AKS_CLUSTER = "akshaycluster"
+$AKS_RG = az group list --query "[0].name" -o tsv
+Write-Host "Resource Group: $AKS_RG"
 $TAG = "latest"
 
-# Optional image tag
-$TAG = "latest"
+
 
 # ============================
 # Build Auth Service
@@ -101,24 +101,25 @@ if ($LASTEXITCODE -ne 0) {
 
 Write-Host "Connected to AKS successfully."
 
-# ============================
-# Update Kustomization & Deploy
-# ============================
 
-Write-Host ""
-Write-Host "Updating kustomization.yaml with ACR name ($ACR_NAME)..."
-Push-Location ../kubernetes
+# login to acr
+$acrCreds = az acr credential show `
+    --name $ACR_NAME `
+    | ConvertFrom-Json
 
-# Update the images dynamically in Kustomize
-kustomize edit set image auth-service=$ACR_NAME.azurecr.io/auth-service:$TAG
-kustomize edit set image post-service=$ACR_NAME.azurecr.io/post-service:$TAG
-kustomize edit set image comment-service=$ACR_NAME.azurecr.io/comment-service:$TAG
-kustomize edit set image media-service=$ACR_NAME.azurecr.io/media-service:$TAG
-kustomize edit set image frontend=$ACR_NAME.azurecr.io/frontend:$TAG
+$acrUser = $acrCreds.username
+$acrPass = $acrCreds.passwords[0].value
 
-Write-Host "Applying Kubernetes manifests via Kustomize..."
-kubectl apply -k .
+kubectl create secret docker-registry acr-secret `
+  --docker-server=akshayregistry.azurecr.io `
+  --docker-username=$acrUser `
+  --docker-password=$acrPass
+
+
+
+# Write-Host "Applying Kubernetes manifests via Kustomize..."
+# kubectl apply -k .
 
 Pop-Location
 Write-Host "Deployment initiated!"
-```
+
