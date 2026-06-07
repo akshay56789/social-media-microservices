@@ -6,7 +6,7 @@ metadata:
   labels:
     app: post-service
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: post-service
