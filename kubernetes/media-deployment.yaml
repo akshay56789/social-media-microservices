@@ -10,7 +10,7 @@ spec:
   # If running in local fallback mode (local filesystem uploads) on a multi-node cluster, 
   # pods will not share the filesystem unless using a shared volume type like ReadWriteMany (e.g. NFS)
   # or scaling down to 1 replica. For local Kubernetes testing, emptyDir is sufficient.
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: media-service
