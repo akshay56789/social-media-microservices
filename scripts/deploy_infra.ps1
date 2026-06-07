@@ -6,9 +6,11 @@ Write-Host "Using Resource Group: $resourceGroup"
 $securePassword = Read-Host "Enter SQL Admin Password" -AsSecureString
 
 $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePassword)
-$sqlPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
+$sqlPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringBSTR($BSTR)
+
+Write-Host "Password Length: $($sqlPassword.Length)"
 
 az deployment group create `
   --resource-group $resourceGroup `
-  --template-file \main.bicep `
+  --template-file main.bicep `
   --parameters sqlAdminPassword="$sqlPassword"
